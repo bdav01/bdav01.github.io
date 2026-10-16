@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; connect-src 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tesla authorization return</title>
+<script>
+// Capture only in page memory, then immediately remove the query from this
+// history entry. The HTTPS hosting provider still receives the initial request;
+// configure it not to retain query strings. Never add analytics or other assets.
+let callbackURL = location.href;
+history.replaceState(null, '', location.pathname);
+</script>
+<style>body{font:18px system-ui;max-width:42rem;margin:4rem auto;padding:0 1rem;line-height:1.5}button{font:inherit;padding:.7rem 1rem}</style>
+</head>
+<body>
+<h1>Tesla authorization return</h1>
+<p id="status">Checking the return packet…</p>
+<p>This page stores no account credentials or access tokens and contacts no other services. The local setup helper must verify this one-time return before exchanging it.</p>
+<p>Download the return packet once. Transfer it securely to the machine running the setup helper, restrict the file to its owner, and use it within 10 minutes of starting authorization. Do not paste it into chat, a command argument, or a log. Remove any downloaded copies afterward.</p>
+<button id="download" type="button" disabled>Download one-time return packet</button>
+<p>Refresh or close this page to discard its in-memory copy.</p>
+<script>
+'use strict';
+const status = document.getElementById('status');
+const button = document.getElementById('download');
+let params = new URL(callbackURL).searchParams;
+const valid = ['code', 'state'].every(key => params.getAll(key).length === 1 && params.get(key)) && !params.has('error');
+params = null;
+status.textContent = valid ? 'Authorization returned. It has not been exchanged for tokens yet.' : 'No valid authorization return is available. Start a fresh authorization from the local helper.';
+button.disabled = !valid;
+if (!valid) callbackURL = null;
+button.addEventListener('click', () => {
+  if (!callbackURL) return;
+  const blob = new Blob([JSON.stringify({callback_url: callbackURL})], {type: 'application/json'});
+  const objectURL = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectURL;
+  anchor.download = 'tesla-authorization-return.json';
+  anchor.click();
+  callbackURL = null;
+  button.disabled = true;
+  status.textContent = 'Download requested. Use the local helper to validate and exchange the return packet.';
+  setTimeout(() => URL.revokeObjectURL(objectURL), 1000);
+});
+</script>
+</body>
+</html>
